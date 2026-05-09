@@ -7,16 +7,18 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace MarkdownConverter
 {
+    internal static class YamlSettings
+    {
+        public static readonly IDeserializer Deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+    }
+    
     internal static class Program
     {
         private static string? _projectName = null;
         private static string? _sourceDirectory = null;
         private static string? _targetDirectory = null;
-        private static string? _navigation = null;
-        private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
-
         private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .UseYamlFrontMatter()
@@ -71,43 +73,17 @@ namespace MarkdownConverter
         private static void GenerateSite()
         {
             var projectPath = Path.Combine(_targetDirectory!, _projectName!);
-            _navigation = NavigationBuilder.BuildNavigation(_sourceDirectory!);
             
             try
             {
                 CreateOutputDirectory(projectPath);
-                List<PageMetadata> allPages = [];
                 var files = Directory.GetFiles(_sourceDirectory!, "*.md", SearchOption.AllDirectories);
-
-                foreach (var file in files)
-                {
-                    var fileContent = File.ReadAllText(file);
-                    var (header, markdownBody) = ParseWithMetadata(fileContent);
-            
-                    var relPath = Path.GetRelativePath(_sourceDirectory!, file);
-                    var url = "/" + Path.ChangeExtension(relPath, ".html").Replace("\\", "/");
-
-                    allPages.Add(new PageMetadata(
-                        header, 
-                        file, 
-                        url, 
-                        Markdown.ToHtml(markdownBody, Pipeline)
-                    ));
-                }
-                
+                var allPages = files.Select(ParseFileMetadata).ToList();
                 var layoutHtml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "layout.html"));
 
                 foreach (var page in allPages)
                 {
-                    var finalHtml = layoutHtml
-                        .Replace("{{Title}}", page.PageHeader.Title)
-                        .Replace("{{Navigation}}", _navigation)
-                        .Replace("{{Content}}", page.HtmlContent.Replace("{{Generator:ListPosts}}", "Test!"));
-                    var outputPath = Path.Combine(projectPath, page.OutputUrl.TrimStart('/'));
-                    
-                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-                    File.WriteAllText(outputPath, finalHtml);
-                    Console.WriteLine($"[Build] {page.PageHeader.Title} -> {page.OutputUrl}");
+                    GeneratePage(projectPath, page, layoutHtml);
                 }
                 
                 Console.WriteLine($"Successfully created a new static site at: {projectPath}");
@@ -116,6 +92,35 @@ namespace MarkdownConverter
             {
                 Console.WriteLine($"Error creating project at: {projectPath} - {e.Message}");
             }
+        }
+
+        private static void GeneratePage(string projectPath, PageMetadata page, string layoutHtml)
+        {
+            var html = layoutHtml
+                .Replace("{{Title}}", page.PageHeader.Title)
+                .Replace("{{Navigation}}", NavigationBuilder.BuildNavigation(_sourceDirectory!))
+                .Replace("{{Content}}", page.HtmlContent.Replace("{{Generator:ListPosts}}", "Test!"));
+            var outputPath = Path.Combine(projectPath, page.OutputUrl.TrimStart('/'));
+                    
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            File.WriteAllText(outputPath, html);
+            Console.WriteLine($"[Build] {page.PageHeader.Title} -> {page.OutputUrl}");
+        }
+
+        private static PageMetadata ParseFileMetadata(string file)
+        {
+            var fileContent = File.ReadAllText(file);
+            var (header, markdownBody) = ParseWithMetadata(fileContent);
+            
+            var relPath = Path.GetRelativePath(_sourceDirectory!, file);
+            var url = "/" + Path.ChangeExtension(relPath, ".html").Replace("\\", "/");
+
+            return new PageMetadata(
+                header,
+                file,
+                url,
+                Markdown.ToHtml(markdownBody, Pipeline)
+            );
         }
 
         private static void CreateOutputDirectory(string projectPath)
@@ -157,8 +162,8 @@ namespace MarkdownConverter
             {
                 var yaml = rawContent.Substring(3, frontMatterEndIndex - 3).Trim();
                 var body = rawContent.Substring(frontMatterEndIndex + 3).Trim();
-
-                var header = YamlDeserializer.Deserialize<PageHeader>(yaml);
+                var header = YamlSettings.Deserializer.Deserialize<PageHeader>(yaml);
+                
                 return (header, body);
             }
             catch (Exception ex)
