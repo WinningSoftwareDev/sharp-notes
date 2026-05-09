@@ -1,4 +1,5 @@
 ﻿using Markdig;
+using MarkdownConverter.MenuGenerator;
 
 namespace MarkdownConverter
 {
@@ -102,30 +103,6 @@ namespace MarkdownConverter
             );
         }
 
-        private static string BuildNavigation()
-        {
-            var items = new List<string>();
-            var html = "";
-            
-            items.Add(BuildMenuItem("Home", "/"));
-            items.Add(BuildMenuItem("About", "/about"));
-
-            foreach (var item in items)
-            {
-                html = html + item;
-            }
-
-            return $"<ul>{html}</ul>";
-        }
-
-        private static string BuildMenuItem(string display, string url)
-        {
-            var item = new MenuItem(display, url);
-            var finalUrl = item.Url.Contains(".html") || item.Url == "/" ? item.Url : item.Url + ".html";
-
-            return $"<li><a href='{finalUrl}'>{item.Display}</a></li>";
-        }
-
         private static void ProcessMarkdownFile(string file, string projectPath, MarkdownPipeline pipeline)
         {
             var outputPath = Path.Combine(
@@ -148,18 +125,12 @@ namespace MarkdownConverter
             );
             var html = htmlText
                 .Replace("{{Title}}", _projectName)
-                .Replace("{{Navigation}}", BuildNavigation())
+                .Replace("{{Navigation}}", NavigationBuilder.BuildNavigation())
                 .Replace("{{Content}}", Markdown.ToHtml(markdown, pipeline));
                     
             File.WriteAllText(outputPath, html);
                     
             Console.WriteLine($"[Build] {file} -> {outputPath}");
         }
-    }
-
-    internal class MenuItem(string display, string url)
-    {
-        public string Display { get; set; } = display;
-        public string Url { get; set; } = url;
     }
 }
