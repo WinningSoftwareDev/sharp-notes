@@ -1,4 +1,6 @@
-﻿namespace MarkdownConverter
+﻿using Markdig;
+
+namespace MarkdownConverter
 {
     internal static class Program
     {
@@ -59,10 +61,38 @@
         private static void GenerateSite()
         {
             var projectPath = Path.Combine(_targetDirectory!, _projectName!);
+            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
             try
             {
                 Directory.CreateDirectory(projectPath);
+
+                var markdownFiles = Directory.GetFiles(_sourceDirectory!, "*.md");
+
+                foreach (var file in markdownFiles)
+                {
+                    var markdown = File.ReadAllText(file);
+                    var toHtml = Markdown.ToHtml(markdown, pipeline);
+
+                    var html = $"""
+                    <!DOCTYPE html>
+                    <html lang='en'>
+                    <head>
+                        <title>{_projectName}</title>
+                    </head>
+                    <body>
+                        {toHtml}
+                    </body>
+                    </html>
+                    """;
+
+                    var fileName = Path.GetFileNameWithoutExtension(file) + ".html";
+                    var outputPath = Path.Combine(projectPath, fileName);
+                    File.WriteAllText(outputPath, html);
+                    
+                    Console.WriteLine($"[Build] {file} -> {outputPath}");
+                }
+                
                 Console.WriteLine($"Successfully initialised project at: {projectPath}");
                 Directory.CreateDirectory(Path.Combine(projectPath, "posts"));
             }
