@@ -68,13 +68,7 @@ namespace MarkdownConverter
             
             try
             {
-                if (Directory.Exists(projectPath))
-                {
-                    Console.WriteLine($"Project directory already exists. Cleaning: {projectPath}");
-                    Directory.Delete(projectPath, true);
-                }
-                
-                Directory.CreateDirectory(projectPath);
+                CreateOutputDirectory(projectPath);
             
                 foreach (
                     var file in 
@@ -85,12 +79,27 @@ namespace MarkdownConverter
                 }
                 
                 Console.WriteLine($"Successfully created a new static site at: {projectPath}");
-                Directory.CreateDirectory(Path.Combine(projectPath, "posts"));
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Error creating project at: {projectPath} - {e.Message}");
             }
+        }
+
+        private static void CreateOutputDirectory(string projectPath)
+        {
+            if (Directory.Exists(projectPath))
+            {
+                Console.WriteLine($"Project directory already exists. Cleaning: {projectPath}");
+                Directory.Delete(projectPath, true);
+            }
+                
+            Directory.CreateDirectory(projectPath);
+            Directory.CreateDirectory(Path.Combine(projectPath, "themes"));
+            File.Copy(Path.Combine(
+                AppContext.BaseDirectory, "assets", "themes", "default.css"), 
+                Path.Combine(projectPath, "themes", "default.css")
+            );
         }
 
         private static void ProcessMarkdownFile(string file, string projectPath, MarkdownPipeline pipeline)
