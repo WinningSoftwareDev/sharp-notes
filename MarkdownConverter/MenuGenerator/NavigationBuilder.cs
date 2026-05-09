@@ -13,9 +13,16 @@ namespace MarkdownConverter.MenuGenerator
 
             if (json is not null)
             {
-                items.AddRange(
-                    collection: json.Navigation.Select(navItem => BuildMenuItem(navItem.Title, navItem.Url))
-                );
+                if (json.Navigation.Count == 0)
+                {
+                    items.Add(BuildMenuItem("Home", "/"));
+                }
+                else
+                {
+                    items.AddRange(
+                        collection: json.Navigation.Select(navItem => BuildMenuItem(navItem.Title, navItem.Url))
+                    );
+                }
             }
             else
             {
