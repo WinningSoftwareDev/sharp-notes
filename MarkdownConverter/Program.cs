@@ -18,7 +18,7 @@ namespace MarkdownConverter
 
             if (!ValidateArguments())
             {
-                Console.WriteLine("You have provided invalid arguments.");
+                Console.WriteLine("Error: you have provided invalid arguments.");
                 return;
             }
             
@@ -61,45 +61,65 @@ namespace MarkdownConverter
         private static void GenerateSite()
         {
             var projectPath = Path.Combine(_targetDirectory!, _projectName!);
-            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UseYamlFrontMatter()
+                .Build();
+            
             try
             {
-                Directory.CreateDirectory(projectPath);
-
-                var markdownFiles = Directory.GetFiles(_sourceDirectory!, "*.md");
-
-                foreach (var file in markdownFiles)
+                if (Directory.Exists(projectPath))
                 {
-                    var markdown = File.ReadAllText(file);
-                    var toHtml = Markdown.ToHtml(markdown, pipeline);
-
-                    var html = $"""
-                    <!DOCTYPE html>
-                    <html lang='en'>
-                    <head>
-                        <title>{_projectName}</title>
-                    </head>
-                    <body>
-                        {toHtml}
-                    </body>
-                    </html>
-                    """;
-
-                    var fileName = Path.GetFileNameWithoutExtension(file) + ".html";
-                    var outputPath = Path.Combine(projectPath, fileName);
-                    File.WriteAllText(outputPath, html);
-                    
-                    Console.WriteLine($"[Build] {file} -> {outputPath}");
+                    Console.WriteLine($"Project directory already exists. Cleaning: {projectPath}");
+                    Directory.Delete(projectPath, true);
                 }
                 
-                Console.WriteLine($"Successfully initialised project at: {projectPath}");
+                Directory.CreateDirectory(projectPath);
+            
+                foreach (
+                    var file in 
+                    Directory.GetFiles(_sourceDirectory!, "*.md", SearchOption.AllDirectories)
+                )
+                {
+                    ProcessMarkdownFile(file, projectPath, pipeline);
+                }
+                
+                Console.WriteLine($"Successfully created a new static site at: {projectPath}");
                 Directory.CreateDirectory(Path.Combine(projectPath, "posts"));
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Error creating project at: {projectPath} - {e.Message}");
             }
+        }
+
+        private static void ProcessMarkdownFile(string file, string projectPath, MarkdownPipeline pipeline)
+        {
+            var outputPath = Path.Combine(
+                projectPath, 
+                Path.ChangeExtension(
+                    Path.GetRelativePath(_sourceDirectory!, file), 
+                    ".html"
+                )
+            );
+            var outputDirectory = Path.GetDirectoryName(outputPath);
+                    
+            if (outputDirectory != null) 
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+            
+            var markdown = File.ReadAllText(file);
+            var htmlText = File.ReadAllText(
+                Path.Combine(AppContext.BaseDirectory, "assets", "layout.html")
+            );
+            var html = htmlText
+                .Replace("{{Title}}", _projectName)
+                .Replace("{{Content}}", Markdown.ToHtml(markdown, pipeline));
+                    
+            File.WriteAllText(outputPath, html);
+                    
+            Console.WriteLine($"[Build] {file} -> {outputPath}");
         }
     }
 }
