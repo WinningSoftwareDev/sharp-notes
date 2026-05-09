@@ -1,4 +1,5 @@
 ﻿using Markdig;
+using MarkdownConverter.Builder;
 using MarkdownConverter.Config;
 using MarkdownConverter.Data;
 using MarkdownConverter.MenuGenerator;
@@ -76,9 +77,12 @@ namespace MarkdownConverter
             
             try
             {
-                CreateOutputDirectory(projectPath);
-                var files = Directory.GetFiles(_sourceDirectory!, "*.md", SearchOption.AllDirectories);
-                var allPages = files.Select(ParseFileMetadata).ToList();
+                DirectoryBuilder.CreateOutputDirectory(projectPath);
+                
+                var allPages = Directory
+                    .GetFiles(_sourceDirectory!, "*.md", SearchOption.AllDirectories)
+                    .Select(ParseFileMetadata)
+                    .ToList();
                 var layoutHtml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "layout.html"));
 
                 foreach (var page in allPages)
@@ -122,27 +126,6 @@ namespace MarkdownConverter
                 Markdown.ToHtml(markdownBody, Pipeline)
             );
         }
-
-        private static void CreateOutputDirectory(string projectPath)
-        {
-            if (Directory.Exists(projectPath))
-            {
-                Console.WriteLine($"Output directory already exists. Cleaning up existing files: {projectPath}");
-                Directory.Delete(projectPath, true);
-            }
-                
-            Directory.CreateDirectory(projectPath);
-            CreateAssetsDirectory(projectPath);
-        }
-
-        private static void CreateAssetsDirectory(string projectPath)
-        {
-            Directory.CreateDirectory(Path.Combine(projectPath, "themes"));
-            File.Copy(Path.Combine(
-                    AppContext.BaseDirectory, "assets", "themes", "default.css"), 
-                Path.Combine(projectPath, "themes", "default.css")
-            );
-        }
         
         private static (PageHeader Header, string Body) ParseWithMetadata(string rawContent)
         {
@@ -160,8 +143,8 @@ namespace MarkdownConverter
 
             try
             {
-                var yaml = rawContent.Substring(3, frontMatterEndIndex - 3).Trim();
-                var body = rawContent.Substring(frontMatterEndIndex + 3).Trim();
+                var yaml = rawContent[3..frontMatterEndIndex].Trim();
+                var body = rawContent[(frontMatterEndIndex + 3)..].Trim();
                 var header = YamlSettings.Deserializer.Deserialize<PageHeader>(yaml);
                 
                 return (header, body);
