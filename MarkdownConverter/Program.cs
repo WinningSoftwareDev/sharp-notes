@@ -3,18 +3,9 @@ using MarkdownConverter.Builder;
 using MarkdownConverter.Config;
 using MarkdownConverter.Data;
 using MarkdownConverter.MenuGenerator;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace MarkdownConverter
 {
-    internal static class YamlSettings
-    {
-        public static readonly IDeserializer Deserializer = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
-    }
-    
     internal static class Program
     {
         private static string? _projectName = null;
@@ -81,7 +72,7 @@ namespace MarkdownConverter
                 
                 var allPages = Directory
                     .GetFiles(_sourceDirectory!, "*.md", SearchOption.AllDirectories)
-                    .Select(ParseFileMetadata)
+                    .Select(GetPageMetadata)
                     .ToList();
                 var layoutHtml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "assets", "layout.html"));
 
@@ -111,7 +102,7 @@ namespace MarkdownConverter
             Console.WriteLine($"[Build] {page.PageHeader.Title} -> {page.OutputUrl}");
         }
 
-        private static PageMetadata ParseFileMetadata(string file)
+        private static PageMetadata GetPageMetadata(string file)
         {
             var fileContent = File.ReadAllText(file);
             var (header, markdownBody) = ParseWithMetadata(fileContent);
