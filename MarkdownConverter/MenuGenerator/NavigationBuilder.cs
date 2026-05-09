@@ -1,14 +1,23 @@
+using MarkdownConverter.Config;
+using System.Text.Json;
+
 namespace MarkdownConverter.MenuGenerator
 {
     internal static class NavigationBuilder
     {
-        public static string BuildNavigation()
+        public static string BuildNavigation(string sourceDirectory)
         {
-            var items = new List<string>()
+            var text = File.ReadAllText(Path.Combine(sourceDirectory!, "build.json"));
+            var json = JsonSerializer.Deserialize<BuildConfig>(text);
+            List<string> items = [];
+
+            if (json is not null)
             {
-                BuildMenuItem("Home", "/"),
-                BuildMenuItem("About", "/about"),
-            };
+                foreach (var navItem in json.Navigation)
+                {
+                    items.Add(BuildMenuItem(navItem.Title, navItem.Url));
+                }
+            }
 
             return $"<ul>{string.Join("", items)}</ul>";
         }

@@ -1,5 +1,7 @@
 ﻿using Markdig;
 using MarkdownConverter.MenuGenerator;
+using System.Text.Json;
+using MarkdownConverter.Config;
 
 namespace MarkdownConverter
 {
@@ -8,6 +10,7 @@ namespace MarkdownConverter
         private static string? _projectName = null;
         private static string? _sourceDirectory = null;
         private static string? _targetDirectory = null;
+        private static string? _navigation = null;
         
         private const string NameKey = "--name";
         private const string SourceDirectoryKey = "--src";
@@ -66,6 +69,7 @@ namespace MarkdownConverter
                 .UseAdvancedExtensions()
                 .UseYamlFrontMatter()
                 .Build();
+            _navigation = NavigationBuilder.BuildNavigation(_sourceDirectory!);
             
             try
             {
@@ -125,7 +129,7 @@ namespace MarkdownConverter
             );
             var html = htmlText
                 .Replace("{{Title}}", _projectName)
-                .Replace("{{Navigation}}", NavigationBuilder.BuildNavigation())
+                .Replace("{{Navigation}}", _navigation)
                 .Replace("{{Content}}", Markdown.ToHtml(markdown, pipeline));
                     
             File.WriteAllText(outputPath, html);
