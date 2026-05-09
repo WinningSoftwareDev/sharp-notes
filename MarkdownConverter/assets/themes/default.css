@@ -52,7 +52,6 @@ h1, h2, h3 {
 p {
     margin-bottom: 1rem;
 }
-
 pre {
     background: var(--code-bg);
     padding: 1rem;
@@ -61,29 +60,24 @@ pre {
     margin: 1.5rem 0;
     border: 1px solid #2d2d44;
 }
-
 code {
     font-family: "Ubuntu Mono", monospace;
     font-size: 0.9rem;
 }
-
 main a {
     color: var(--accent-color);
     text-decoration: underline;
 }
-
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 1.5rem 0;
 }
-
 th, td {
     border: 1px solid #2d2d44;
     padding: 0.75rem;
     text-align: left;
 }
-
 th {
     background: #1a1a2e;
 }
