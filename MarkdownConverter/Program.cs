@@ -17,8 +17,17 @@ namespace MarkdownConverter
     internal class PageHeader {
         public string Title { get; init; } = "";
         public string Type { get; init; } = "post";
+        public bool MenuItem { get; init; } = false;
+        public int? MenuIndex { get; init; } = null;
         public DateTime? Date { get; init; } = null;
         public List<string> Tags { get; init; } = [];
+    }
+
+    internal static class GeneratorArguments
+    {
+        public const string NameKey = "--name";
+        public const string SourceDirectoryKey = "--src";
+        public const string TargetDirectoryKey = "--to";
     }
 
     internal static class Program
@@ -27,10 +36,9 @@ namespace MarkdownConverter
         private static string? _sourceDirectory = null;
         private static string? _targetDirectory = null;
         private static string? _navigation = null;
-        
-        private const string NameKey = "--name";
-        private const string SourceDirectoryKey = "--src";
-        private const string TargetDirectoryKey = "--to";
+        private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
         
         private static void Main(string[] args)
         {
@@ -44,28 +52,24 @@ namespace MarkdownConverter
             
             GenerateSite();
         }
-        
-        private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance) // Matches "prettyName" to "PrettyName"
-            .Build();
 
         private static void ParseArguments(string[] args)
         {
             foreach (var arg in args)
             {
-                if (arg.StartsWith(NameKey))
+                if (arg.StartsWith(GeneratorArguments.NameKey))
                 {
-                    _projectName = arg[$"{NameKey}=".Length..];
+                    _projectName = arg[$"{GeneratorArguments.NameKey}=".Length..];
                 }
 
-                if (arg.StartsWith(SourceDirectoryKey))
+                if (arg.StartsWith(GeneratorArguments.SourceDirectoryKey))
                 {
-                    _sourceDirectory = arg[$"{SourceDirectoryKey}=".Length..];
+                    _sourceDirectory = arg[$"{GeneratorArguments.SourceDirectoryKey}=".Length..];
                 }
 
-                if (arg.StartsWith(TargetDirectoryKey))
+                if (arg.StartsWith(GeneratorArguments.TargetDirectoryKey))
                 {
-                    _targetDirectory = arg[$"{TargetDirectoryKey}=".Length..];
+                    _targetDirectory = arg[$"{GeneratorArguments.TargetDirectoryKey}=".Length..];
                 }
             }
         }
@@ -121,8 +125,8 @@ namespace MarkdownConverter
                         .Replace("{{Title}}", page.PageHeader.Title)
                         .Replace("{{Navigation}}", _navigation)
                         .Replace("{{Content}}", page.HtmlContent.Replace("{{Generator:ListPosts}}", "Test!"));
-
                     var outputPath = Path.Combine(projectPath, page.OutputUrl.TrimStart('/'));
+                    
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                     File.WriteAllText(outputPath, finalHtml);
                     Console.WriteLine($"[Build] {page.PageHeader.Title} -> {page.OutputUrl}");
@@ -164,19 +168,19 @@ namespace MarkdownConverter
                 return (new PageHeader { Title = "Untitled", Date = DateTime.Now }, rawContent);
             }
 
-            var parts = rawContent.Split("---", 3, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length < 2)
+            var frontMatterEndIndex = rawContent.IndexOf("---", 3, StringComparison.Ordinal);
+            
+            if (frontMatterEndIndex == -1)
             {
                 return (new PageHeader { Title = "Untitled", Date = DateTime.Now }, rawContent);
             }
 
             try
             {
-                var yaml = parts[0];
-                var body = parts[1];
+                var yaml = rawContent.Substring(3, frontMatterEndIndex - 3).Trim();
+                var body = rawContent.Substring(frontMatterEndIndex + 3).Trim();
+
                 var header = YamlDeserializer.Deserialize<PageHeader>(yaml);
-        
                 return (header, body);
             }
             catch (Exception ex)
