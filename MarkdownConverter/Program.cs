@@ -2,6 +2,8 @@
 using MarkdownConverter.MenuGenerator;
 using System.Text.Json;
 using MarkdownConverter.Config;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace MarkdownConverter
 {
@@ -14,7 +16,8 @@ namespace MarkdownConverter
     
     internal class PageHeader {
         public string Title { get; init; } = "";
-        public DateTime Date { get; init; }
+        public string Type { get; init; } = "post";
+        public DateTime? Date { get; init; } = null;
         public List<string> Tags { get; init; } = [];
     }
 
@@ -41,6 +44,10 @@ namespace MarkdownConverter
             
             GenerateSite();
         }
+        
+        private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance) // Matches "prettyName" to "PrettyName"
+            .Build();
 
         private static void ParseArguments(string[] args)
         {
@@ -113,19 +120,13 @@ namespace MarkdownConverter
                     var finalHtml = layoutHtml
                         .Replace("{{Title}}", page.PageHeader.Title)
                         .Replace("{{Navigation}}", _navigation)
-                        .Replace("{{Content}}", page.HtmlContent);
+                        .Replace("{{Content}}", page.HtmlContent.Replace("{{Generator:ListPosts}}", "Test!"));
 
                     var outputPath = Path.Combine(projectPath, page.OutputUrl.TrimStart('/'));
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                     File.WriteAllText(outputPath, finalHtml);
-            
                     Console.WriteLine($"[Build] {page.PageHeader.Title} -> {page.OutputUrl}");
                 }
-                
-                // foreach (var file in files)
-                // {
-                //     ProcessMarkdownFile(file, projectPath, pipeline);
-                // }
                 
                 Console.WriteLine($"Successfully created a new static site at: {projectPath}");
             }
@@ -155,54 +156,34 @@ namespace MarkdownConverter
                 Path.Combine(projectPath, "themes", "default.css")
             );
         }
-
-        private static void ProcessMarkdownFile(string file, string projectPath, MarkdownPipeline pipeline)
+        
+        private static (PageHeader Header, string Body) ParseWithMetadata(string rawContent)
         {
-            var outputPath = Path.Combine(
-                projectPath, 
-                Path.ChangeExtension(
-                    Path.GetRelativePath(_sourceDirectory!, file), 
-                    ".html"
-                )
-            );
-            var outputDirectory = Path.GetDirectoryName(outputPath);
-                    
-            if (outputDirectory != null) 
+            if (!rawContent.StartsWith("---"))
             {
-                Directory.CreateDirectory(outputDirectory);
+                return (new PageHeader { Title = "Untitled", Date = DateTime.Now }, rawContent);
             }
-            
-            var markdown = File.ReadAllText(file);
-            var htmlText = File.ReadAllText(
-                Path.Combine(AppContext.BaseDirectory, "assets", "layout.html")
-            );
-            var html = htmlText
-                .Replace("{{Title}}", _projectName)
-                .Replace("{{Navigation}}", _navigation)
-                .Replace("{{Content}}", Markdown.ToHtml(markdown, pipeline));
-                    
-            File.WriteAllText(outputPath, html);
-                    
-            Console.WriteLine($"[Build] {file} -> {outputPath}");
-        }
 
-        private static (PageHeader Header, string Body) ParseWithMetadata(string content)
-        {
-            if (!content.StartsWith("---"))
+            var parts = rawContent.Split("---", 3, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length < 2)
             {
-                return (new PageHeader { Title = "Untitled" }, content);
+                return (new PageHeader { Title = "Untitled", Date = DateTime.Now }, rawContent);
             }
-            
-            var parts = content.Split("---", StringSplitOptions.RemoveEmptyEntries);
-            var yaml = parts[0];
-            var body = parts.Length > 1 ? parts[1] : "";
 
-            // Here you would use YamlDotNet to turn 'yaml' string into 'PageHeader'
-            // For a quick test, let's just manually grab the title
-            var titleLine = yaml.Split('\n').FirstOrDefault(l => l.StartsWith("title:"));
-            var title = titleLine?.Split(':')[1].Trim() ?? "Untitled";
-
-            return (new PageHeader { Title = title, Date = DateTime.Now, Tags = [] }, body);
+            try
+            {
+                var yaml = parts[0];
+                var body = parts[1];
+                var header = YamlDeserializer.Deserialize<PageHeader>(yaml);
+        
+                return (header, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Warning] Failed to parse YAML: {ex.Message}");
+                return (new PageHeader { Title = "Error Parsing Header", Date = DateTime.Now }, rawContent);
+            }
         }
     }
 }

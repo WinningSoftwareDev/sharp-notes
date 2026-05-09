@@ -23,7 +23,7 @@ body {
 nav {
     width: 100%;
     max-width: var(--container-width);
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #2d2d44;
 }
@@ -47,7 +47,7 @@ main {
 }
 h1, h2, h3 {
     color: #ffffff;
-    margin: 1.5rem 0 1rem;
+    margin: 1rem 0 .75rem;
 }
 p {
     margin-bottom: 1rem;
@@ -81,7 +81,6 @@ th, td {
 th {
     background: #1a1a2e;
 }
-/* Styling the blockquote bar */
 blockquote {
     margin: 1.5rem 0;
     padding: 0.5rem 1.5rem;
@@ -90,18 +89,13 @@ blockquote {
     font-style: italic;
     color: #e0e0e0;
 }
-
-/* Better spacing for lists */
 ul, ol {
     margin-bottom: 1.5rem;
     padding-left: 1.5rem;
 }
-
 li {
     margin-bottom: 0.5rem;
 }
-
-/* Style for those task list checkboxes */
 input[type="checkbox"] {
     margin-right: 0.5rem;
     accent-color: var(--accent-color);
