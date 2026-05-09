@@ -1,35 +1,12 @@
 ﻿using Markdig;
-using MarkdownConverter.MenuGenerator;
-using System.Text.Json;
 using MarkdownConverter.Config;
+using MarkdownConverter.Data;
+using MarkdownConverter.MenuGenerator;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace MarkdownConverter
 {
-    internal record PageMetadata(
-        PageHeader PageHeader,
-        string FilePath, 
-        string OutputUrl, 
-        string HtmlContent
-    );
-    
-    internal class PageHeader {
-        public string Title { get; init; } = "";
-        public string Type { get; init; } = "post";
-        public bool MenuItem { get; init; } = false;
-        public int? MenuIndex { get; init; } = null;
-        public DateTime? Date { get; init; } = null;
-        public List<string> Tags { get; init; } = [];
-    }
-
-    internal static class GeneratorArguments
-    {
-        public const string NameKey = "--name";
-        public const string SourceDirectoryKey = "--src";
-        public const string TargetDirectoryKey = "--to";
-    }
-
     internal static class Program
     {
         private static string? _projectName = null;
@@ -38,6 +15,11 @@ namespace MarkdownConverter
         private static string? _navigation = null;
         private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseYamlFrontMatter()
             .Build();
         
         private static void Main(string[] args)
@@ -89,10 +71,6 @@ namespace MarkdownConverter
         private static void GenerateSite()
         {
             var projectPath = Path.Combine(_targetDirectory!, _projectName!);
-            var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .UseYamlFrontMatter()
-                .Build();
             _navigation = NavigationBuilder.BuildNavigation(_sourceDirectory!);
             
             try
@@ -113,7 +91,7 @@ namespace MarkdownConverter
                         header, 
                         file, 
                         url, 
-                        Markdown.ToHtml(markdownBody, pipeline)
+                        Markdown.ToHtml(markdownBody, Pipeline)
                     ));
                 }
                 
@@ -186,7 +164,7 @@ namespace MarkdownConverter
             catch (Exception ex)
             {
                 Console.WriteLine($"[Warning] Failed to parse YAML: {ex.Message}");
-                return (new PageHeader { Title = "Error Parsing Header", Date = DateTime.Now }, rawContent);
+                return (new PageHeader { Title = "Untitled" }, rawContent);
             }
         }
     }
