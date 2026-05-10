@@ -9,7 +9,7 @@ namespace MarkdownConverter.Builder
                 Console.WriteLine($"Output directory already exists. Cleaning up existing files: {projectPath}");
                 Directory.Delete(projectPath, true);
             }
-                
+            
             Directory.CreateDirectory(projectPath);
             CreateAssetsDirectory(projectPath);
         }
