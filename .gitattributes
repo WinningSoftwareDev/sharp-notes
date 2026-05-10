@@ -1,0 +1,5 @@
+*.cs linguist-detectable=true
+*.csproj linguist-documentation=true
+*.sln linguist-documentation=true
+bin/ export-ignore
+obj/ export-ignore
