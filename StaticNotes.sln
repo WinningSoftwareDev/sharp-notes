@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownConverter", "MarkdownConverter\MarkdownConverter.csproj", "{72F57D26-B4DB-4E88-B5FD-CEA590D8F1D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StaticNotes", "MarkdownConverter\MarkdownConverter.csproj", "{72F57D26-B4DB-4E88-B5FD-CEA590D8F1D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
